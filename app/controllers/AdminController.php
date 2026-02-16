@@ -197,17 +197,98 @@ class AdminController extends BaseController
     }
 
     /**
-     * GET /tipos-consultoria.php - Tipos de consultoría
+     * GET/POST /tipos-consultoria.php - Tipos de consultoría
      */
     public function tiposConsultoria(): void
     {
         AuthMiddleware::requireAdminOrSistemas();
 
-        $tipos = Database::fetchAll("SELECT * FROM tipos_consultoria ORDER BY orden ASC, nombre ASC");
+        $mensaje = null;
+        $mensajeTipo = null;
+
+        if ($this->isPost()) {
+            $action = $this->postData('action', '');
+
+            switch ($action) {
+                case 'create':
+                    $nombre = trim($this->postData('nombre', ''));
+                    $descripcion = trim($this->postData('descripcion', ''));
+                    $orden = (int) $this->postData('orden', 0);
+                    if (empty($nombre)) {
+                        $mensajeTipo = 'danger';
+                        $mensaje = 'El nombre es obligatorio';
+                    } else {
+                        Database::insert('tipos_consultoria', [
+                            'nombre' => $nombre,
+                            'descripcion' => $descripcion ?: null,
+                            'orden' => $orden,
+                            'activo' => 1,
+                        ]);
+                        $mensajeTipo = 'success';
+                        $mensaje = 'Tipo creado correctamente';
+                    }
+                    break;
+
+                case 'update':
+                    $id = (int) $this->postData('id', 0);
+                    $nombre = trim($this->postData('nombre', ''));
+                    $descripcion = trim($this->postData('descripcion', ''));
+                    $orden = (int) $this->postData('orden', 0);
+                    if ($id && !empty($nombre)) {
+                        Database::update('tipos_consultoria', [
+                            'nombre' => $nombre,
+                            'descripcion' => $descripcion ?: null,
+                            'orden' => $orden,
+                        ], 'id = ?', [$id]);
+                        $mensajeTipo = 'success';
+                        $mensaje = 'Tipo actualizado';
+                    } else {
+                        $mensajeTipo = 'danger';
+                        $mensaje = 'El nombre es obligatorio';
+                    }
+                    break;
+
+                case 'toggle':
+                    $id = (int) $this->postData('id', 0);
+                    $activo = (int) $this->postData('activo', 0);
+                    if ($id) {
+                        Database::update('tipos_consultoria', ['activo' => $activo], 'id = ?', [$id]);
+                        $mensajeTipo = 'success';
+                        $mensaje = $activo ? 'Tipo activado' : 'Tipo desactivado';
+                    }
+                    break;
+
+                case 'delete':
+                    $id = (int) $this->postData('id', 0);
+                    if ($id) {
+                        // Solo eliminar si no hay tickets asociados
+                        $count = Database::fetchOne("SELECT COUNT(*) as c FROM tickets WHERE tipo_consultoria_id = ?", [$id]);
+                        if ((int)$count['c'] > 0) {
+                            $mensajeTipo = 'danger';
+                            $mensaje = 'No se puede eliminar: hay ' . $count['c'] . ' tickets asociados. Desactívalo en su lugar.';
+                        } else {
+                            Database::delete('tipos_consultoria', 'id = ?', [$id]);
+                            $mensajeTipo = 'success';
+                            $mensaje = 'Tipo eliminado';
+                        }
+                    }
+                    break;
+            }
+        }
+
+        $tipos = Database::fetchAll("
+            SELECT tc.*, COUNT(t.id) as tickets_count 
+            FROM tipos_consultoria tc 
+            LEFT JOIN tickets t ON tc.id = t.tipo_consultoria_id 
+            GROUP BY tc.id 
+            ORDER BY tc.orden ASC, tc.nombre ASC
+        ");
 
         $this->renderWithLayout('admin/tipos-consultoria', [
             'pageTitle' => 'Tipos de Consultoría',
             'tipos' => $tipos,
+            'mensaje' => $mensaje,
+            'mensajeTipo' => $mensajeTipo,
         ]);
     }
 

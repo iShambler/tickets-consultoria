@@ -1,11 +1,11 @@
-    <footer class="footer mt-auto py-3 bg-light border-top">
+    <footer class="footer-corp mt-auto py-2 border-top">
         <div class="container-fluid">
-            <div class="row">
+            <div class="row align-items-center">
                 <div class="col-md-6">
-                    <span class="text-muted">&copy; <?= date('Y') ?> Arelance. Todos los derechos reservados.</span>
+                    <span class="text-muted">&copy; <?= date('Y') ?> <strong>Arelance</strong>. Todos los derechos reservados.</span>
                 </div>
                 <div class="col-md-6 text-end">
-                    <span class="text-muted">Versión 1.0.0</span>
+                    <span class="text-muted">v1.0.0</span>
                 </div>
             </div>
         </div>
