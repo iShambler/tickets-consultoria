@@ -39,7 +39,8 @@ return [
     'roles' => [
         'admin' => 1,
         'consultor' => 2,
-        'cliente' => 3
+        'cliente' => 3,
+        'sistemas' => 4
     ],
     
     // Estados de ticket

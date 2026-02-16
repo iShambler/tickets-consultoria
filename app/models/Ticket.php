@@ -134,8 +134,16 @@ class Ticket
      */
     public function addComentario(int $usuarioId, string $comentario, bool $esInterno = false): bool
     {
+        return (bool) $this->addComentarioConId($usuarioId, $comentario, $esInterno);
+    }
+
+    /**
+     * Añade un comentario y devuelve su ID (o null si falla)
+     */
+    public function addComentarioConId(int $usuarioId, string $comentario, bool $esInterno = false): ?int
+    {
         if ($this->id === null) {
-            return false;
+            return null;
         }
         
         try {
@@ -146,12 +154,11 @@ class Ticket
                 'es_interno' => $esInterno ? 1 : 0
             ];
             
-            Database::insert('ticket_comentarios', $data);
-            return true;
+            return Database::insert('ticket_comentarios', $data);
             
         } catch (\Exception $e) {
             error_log("Error al añadir comentario: " . $e->getMessage());
-            return false;
+            return null;
         }
     }
     
@@ -223,7 +230,7 @@ class Ticket
     }
     
     /**
-     * Obtiene los comentarios del ticket
+     * Obtiene los comentarios del ticket con sus imágenes adjuntas
      */
     public function getComentarios(bool $incluirInternos = false): array
     {
@@ -244,7 +251,17 @@ class Ticket
         
         $sql .= " ORDER BY c.fecha_creacion ASC";
         
-        return Database::fetchAll($sql, $params);
+        $comentarios = Database::fetchAll($sql, $params);
+
+        // Cargar imágenes de cada comentario
+        foreach ($comentarios as &$com) {
+            $com['imagenes'] = Database::fetchAll(
+                "SELECT * FROM ticket_archivos WHERE comentario_id = ? ORDER BY fecha_subida ASC",
+                [$com['id']]
+            );
+        }
+
+        return $comentarios;
     }
     
     /**
@@ -410,6 +427,85 @@ class Ticket
         return array_map([self::class, 'hydrate'], $results);
     }
     
+    /**
+     * Busca tickets resueltos similares basándose en título, descripción y categoría.
+     * Devuelve tickets con puntuación de similitud para que la IA pueda recomendar.
+     */
+    public static function findSimilarResolved(string $titulo, string $descripcion, ?string $categoria = null, int $limit = 5): array
+    {
+        // Extraer palabras clave del título (>3 chars, sin stopwords)
+        $stopwords = ['para', 'como', 'este', 'esta', 'esos', 'esas', 'pero', 'porque',
+                      'desde', 'hasta', 'entre', 'sobre', 'tras', 'durante', 'mediante',
+                      'tiene', 'puede', 'hacer', 'cuando', 'donde', 'quien', 'cual',
+                      'todo', 'toda', 'todos', 'todas', 'otro', 'otra', 'otros', 'otras',
+                      'mismo', 'misma', 'cada', 'mucho', 'poco', 'algo', 'nada',
+                      'error', 'problema', 'funciona', 'falla', 'with', 'from', 'that', 'this',
+                      'the', 'and', 'for', 'are', 'not', 'you', 'all', 'can', 'had', 'her',
+                      'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how'];
+
+        $palabras = preg_split('/[\s,;.:\-\/()\[\]{}]+/', mb_strtolower($titulo . ' ' . $descripcion));
+        $keywords = array_unique(array_filter($palabras, function($w) use ($stopwords) {
+            return mb_strlen($w) > 3 && !in_array($w, $stopwords) && !is_numeric($w);
+        }));
+
+        if (empty($keywords)) {
+            return [];
+        }
+
+        // Construir búsqueda FULLTEXT-like con LIKE
+        $conditions = [];
+        $params = [];
+        foreach (array_slice($keywords, 0, 10) as $kw) {
+            $conditions[] = "(t.titulo LIKE ? OR t.descripcion LIKE ?)";
+            $params[] = '%' . $kw . '%';
+            $params[] = '%' . $kw . '%';
+        }
+
+        $sql = "SELECT t.id, t.numero, t.titulo, t.descripcion, t.estado,
+                       t.fecha_resolucion, t.tipo_consultoria_id,
+                       tc.nombre as tipo_consultoria_nombre,
+                       (" . implode(' + ', array_map(function($i) {
+                           return "(CASE WHEN t.titulo LIKE ? THEN 3 ELSE 0 END + CASE WHEN t.descripcion LIKE ? THEN 1 ELSE 0 END)";
+                       }, array_slice($keywords, 0, 10))) . ") as relevancia
+                FROM tickets t
+                LEFT JOIN tipos_consultoria tc ON t.tipo_consultoria_id = tc.id
+                WHERE t.estado IN ('resuelto', 'cerrado')
+                AND (" . implode(' OR ', $conditions) . ")
+                ORDER BY relevancia DESC, t.fecha_resolucion DESC
+                LIMIT ?";
+
+        // Parámetros para el scoring
+        $scoreParams = [];
+        foreach (array_slice($keywords, 0, 10) as $kw) {
+            $scoreParams[] = '%' . $kw . '%';
+            $scoreParams[] = '%' . $kw . '%';
+        }
+
+        $allParams = array_merge($scoreParams, $params, [$limit]);
+
+        try {
+            $results = Database::fetchAll($sql, $allParams);
+
+            // Obtener comentarios de resolución para cada ticket similar
+            foreach ($results as &$r) {
+                $comentarios = Database::fetchAll(
+                    "SELECT c.comentario, c.fecha_creacion, u.nombre as autor
+                     FROM ticket_comentarios c
+                     INNER JOIN usuarios u ON c.usuario_id = u.id
+                     WHERE c.ticket_id = ?
+                     ORDER BY c.fecha_creacion DESC LIMIT 3",
+                    [$r['id']]
+                );
+                $r['comentarios_resolucion'] = $comentarios;
+            }
+
+            return $results;
+        } catch (\Exception $e) {
+            error_log("Error buscando tickets similares: " . $e->getMessage());
+            return [];
+        }
+    }
+
     /**
      * Registra cambios en el historial
      */

@@ -18,11 +18,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <i class="bi bi-plus-circle"></i> Nuevo ticket
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= $currentPage === 'mis-tickets.php' ? 'active' : '' ?>" href="<?= base_url('mis-tickets.php') ?>">
-                        <i class="bi bi-list-ul"></i> Mis tickets
-                    </a>
-                </li>
             <?php endif; ?>
             
             <?php if (Auth::isStaff()): ?>
@@ -33,7 +28,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </li>
             <?php endif; ?>
             
-            <?php if (Auth::isAdmin()): ?>
+            <?php if (Auth::isAdmin() || Auth::isSistemas()): ?>
                 <li class="nav-item mt-3">
                     <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
                         <span>Administración</span>

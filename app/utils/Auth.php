@@ -144,11 +144,19 @@ class Auth
     }
     
     /**
-     * Verifica si el usuario es consultor o admin
+     * Verifica si el usuario es de sistemas
+     */
+    public static function isSistemas(): bool
+    {
+        return self::hasRole(4);
+    }
+    
+    /**
+     * Verifica si el usuario es staff (admin, consultor o sistemas)
      */
     public static function isStaff(): bool
     {
-        return self::isAdmin() || self::isConsultor();
+        return self::isAdmin() || self::isConsultor() || self::isSistemas();
     }
     
     /**

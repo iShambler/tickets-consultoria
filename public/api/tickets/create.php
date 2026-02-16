@@ -119,8 +119,13 @@ try {
         ApiResponse::validationError('El email proporcionado no es válido');
     }
     
+    // Decodificar MIME encoded-word (=?UTF-8?Q?...?= o =?UTF-8?B?...?=) de asuntos de email
     $nombre = htmlspecialchars(trim($data['nombre'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $titulo = htmlspecialchars(trim($data['titulo']), ENT_QUOTES, 'UTF-8');
+    $tituloRaw = trim($data['titulo']);
+    if (preg_match('/=\?[^?]+\?[BQbq]\?/', $tituloRaw)) {
+        $tituloRaw = mb_decode_mimeheader($tituloRaw);
+    }
+    $titulo = htmlspecialchars($tituloRaw, ENT_QUOTES, 'UTF-8');
     $descripcion = htmlspecialchars(trim($data['descripcion']), ENT_QUOTES, 'UTF-8');
     $categoria = strtolower(trim($data['categoria'] ?? 'otro'));
     $prioridad = TicketMapper::normalizarPrioridad($data['prioridad'] ?? 'media');
@@ -157,7 +162,44 @@ try {
     $metadata = TicketMapper::construirMetadata($data);
 
     // =========================================
-    // 11. CREAR TICKET
+    // 11. BUSCAR TICKETS SIMILARES RESUELTOS
+    // =========================================
+    $ticketsSimilares = Ticket::findSimilarResolved($titulo, $descripcion, $categoria, 5);
+    
+    $recomendacion = null;
+    if (!empty($ticketsSimilares)) {
+        $recomendacion = [];
+        $recomendacion['mensaje'] = 'Se encontraron ' . count($ticketsSimilares) . ' ticket(s) similares ya resueltos que podrían ayudar a resolver esta incidencia.';
+        $recomendacion['tickets'] = [];
+        
+        foreach ($ticketsSimilares as $similar) {
+            $entry = [
+                'ticket_id' => $similar['id'],
+                'numero' => $similar['numero'],
+                'titulo' => $similar['titulo'],
+                'estado' => $similar['estado'],
+                'fecha_resolucion' => $similar['fecha_resolucion'],
+                'relevancia' => $similar['relevancia'] ?? 0,
+            ];
+            // Incluir comentarios de resolución si los hay
+            if (!empty($similar['comentarios_resolucion'])) {
+                $entry['comentarios'] = array_map(function($c) {
+                    return [
+                        'autor' => $c['autor'],
+                        'texto' => mb_substr($c['comentario'], 0, 500),
+                        'fecha' => $c['fecha_creacion']
+                    ];
+                }, $similar['comentarios_resolucion']);
+            }
+            $recomendacion['tickets'][] = $entry;
+        }
+        
+        // Añadir recomendación a datos_ia
+        $datosIa['recomendacion'] = $recomendacion;
+    }
+
+    // =========================================
+    // 12. CREAR TICKET
     // =========================================
     $ticket = new Ticket();
     $ticket->setClienteId($usuario->getId());
@@ -177,7 +219,7 @@ try {
     }
 
     // =========================================
-    // 12. LOG Y RESPUESTA EXITOSA
+    // 13. LOG Y RESPUESTA EXITOSA
     // =========================================
     $responseTime = microtime(true) - $startTime;
     
@@ -191,7 +233,7 @@ try {
         $responseTime
     );
     
-    ApiResponse::success([
+    $responseData = [
         'ticket_id' => $ticket->getId(),
         'ticket_numero' => $ticket->getNumero(),
         'cliente_id' => $usuario->getId(),
@@ -200,8 +242,15 @@ try {
         'prioridad' => $prioridad,
         'estado' => 'nuevo',
         'fuente' => 'email',
-        'created_at' => date('c')
-    ], 201);
+        'created_at' => date('c'),
+        'tickets_similares' => !empty($ticketsSimilares) ? count($ticketsSimilares) : 0,
+    ];
+    
+    if (!empty($recomendacion)) {
+        $responseData['recomendacion'] = $recomendacion;
+    }
+    
+    ApiResponse::success($responseData, 201);
 
 } catch (\Exception $e) {
     $responseTime = microtime(true) - $startTime;

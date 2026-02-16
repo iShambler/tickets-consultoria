@@ -20,6 +20,7 @@ class Usuario
     private int $rol = 3; // Cliente por defecto
     private bool $activo = true;
     private bool $creadoAutomaticamente = false;
+    private ?string $ultimoAcceso = null;
     
     /**
      * Crea un nuevo usuario en la base de datos
@@ -166,6 +167,16 @@ class Usuario
     }
     
     /**
+     * Obtiene todos los usuarios asignables (consultores + sistemas)
+     */
+    public static function getAsignables(): array
+    {
+        $sql = "SELECT * FROM usuarios WHERE rol IN (2, 4) AND activo = 1 ORDER BY nombre ASC";
+        $results = Database::fetchAll($sql);
+        return array_map([self::class, 'hydrate'], $results);
+    }
+    
+    /**
      * Verifica las credenciales de login
      */
     public static function login(string $email, string $password): ?self
@@ -254,6 +265,7 @@ class Usuario
         $usuario->rol = (int) $data['rol'];
         $usuario->activo = (bool) $data['activo'];
         $usuario->creadoAutomaticamente = (bool) ($data['creado_automaticamente'] ?? false);
+        $usuario->ultimoAcceso = $data['ultimo_acceso'] ?? null;
         
         return $usuario;
     }
@@ -283,6 +295,22 @@ class Usuario
     }
     
     /**
+     * Verifica si el usuario es de sistemas
+     */
+    public function isSistemas(): bool
+    {
+        return $this->rol === 4;
+    }
+    
+    /**
+     * Verifica si el usuario es staff (admin, consultor o sistemas)
+     */
+    public function isStaff(): bool
+    {
+        return in_array($this->rol, [1, 2, 4]);
+    }
+    
+    /**
      * Obtiene el nombre del rol
      */
     public function getRolNombre(): string
@@ -291,6 +319,7 @@ class Usuario
             1 => 'Administrador',
             2 => 'Consultor',
             3 => 'Cliente',
+            4 => 'Sistemas',
             default => 'Desconocido'
         };
     }
@@ -385,5 +414,10 @@ class Usuario
     public function setCreadoAutomaticamente(bool $creadoAutomaticamente): void
     {
         $this->creadoAutomaticamente = $creadoAutomaticamente;
+    }
+    
+    public function getUltimoAcceso(): ?string
+    {
+        return $this->ultimoAcceso;
     }
 }
