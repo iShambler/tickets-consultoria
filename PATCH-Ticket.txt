@@ -1,0 +1,20 @@
+<?php
+/**
+ * Modelo Ticket - Añadir fecha_actualizacion
+ */
+
+// Este es un parche para agregar el getter de fechaActualizacion
+// Agregar esta línea en la clase Ticket después de las otras propiedades privadas:
+// private ?string $fechaActualizacion = null;
+
+// Y agregar este método al final de la clase, antes del cierre:
+/*
+    public function getFechaActualizacion(): ?string
+    {
+        return $this->fechaActualizacion;
+    }
+*/
+
+// En el método hydrate(), agregar después de $ticket->fechaCreacion:
+// $ticket->fechaActualizacion = $data['fecha_actualizacion'] ?? null;
+?>

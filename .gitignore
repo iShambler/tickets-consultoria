@@ -1,0 +1,44 @@
+# Archivos de configuración sensibles
+.env
+/app/config/local.php
+
+# Archivos subidos por usuarios
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# Logs
+*.log
+/logs/*
+!/logs/.gitkeep
+
+# Cache
+/cache/*
+!/cache/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Composer
+/vendor/
+composer.lock
+
+# Node modules (si se usa)
+/node_modules/
+package-lock.json
+yarn.lock
+
+# Archivos temporales
+*.tmp
+*.bak
+*.backup
+.phpunit.result.cache
+
+# Sistema operativo
+Thumbs.db
+ehthumbs.db
+Desktop.ini

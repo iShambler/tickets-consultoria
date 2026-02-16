@@ -1,0 +1,200 @@
+/* Estilos personalizados */
+
+:root {
+    --sidebar-width: 280px;
+}
+
+body {
+    font-size: 0.9rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    top: 56px;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-right: 1px solid #dee2e6;
+}
+
+.sidebar .nav-link {
+    font-weight: 500;
+    color: #333;
+    padding: 0.75rem 1rem;
+}
+
+.sidebar .nav-link:hover {
+    background-color: #f8f9fa;
+}
+
+.sidebar .nav-link.active {
+    color: #0d6efd;
+    background-color: #e7f1ff;
+    border-left: 3px solid #0d6efd;
+}
+
+.sidebar .nav-link i {
+    margin-right: 0.5rem;
+}
+
+.sidebar-heading {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+/* Dashboard */
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* Tabla de tickets */
+.table thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Badges */
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+}
+
+/* Forms */
+.form-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+/* Botones */
+.btn {
+    font-weight: 500;
+}
+
+/* Footer */
+.footer {
+    margin-top: auto;
+}
+
+/* Utilidades */
+.text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Responsive */
+@media (max-width: 767.98px) {
+    .sidebar {
+        top: 5rem;
+    }
+    
+    main {
+        margin-top: 48px;
+    }
+}
+
+/* Loading spinner */
+.spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+/* Comentarios */
+.comment-item {
+    border-left: 3px solid #dee2e6;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+}
+
+.comment-item.internal {
+    border-left-color: #ffc107;
+    background-color: #fffbf0;
+    padding: 1rem;
+    border-radius: 0.25rem;
+}
+
+/* Archivos adjuntos */
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    margin-bottom: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+.file-item:hover {
+    background-color: #f8f9fa;
+}
+
+.file-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+    color: #6c757d;
+}
+
+/* Timeline */
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -1.65rem;
+    top: 0.25rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #0d6efd;
+    border: 2px solid #fff;
+}

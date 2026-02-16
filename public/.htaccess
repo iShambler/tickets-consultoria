@@ -1,0 +1,62 @@
+# Protección contra listado de directorios
+Options -Indexes
+
+# Protección de archivos sensibles
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Proteger archivos de configuración
+<FilesMatch "\.(env|ini|log|sh|sql)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Habilitar compresión
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Cache de recursos estáticos
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType application/pdf "access plus 1 month"
+    ExpiresDefault "access plus 2 days"
+</IfModule>
+
+# Seguridad adicional
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Proteger contra inyección de código
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Proteger contra inyección SQL
+    RewriteCond %{QUERY_STRING} [a-zA-Z0-9_]=http:// [OR]
+    RewriteCond %{QUERY_STRING} [a-zA-Z0-9_]=(\.\.//?)+ [OR]
+    RewriteCond %{QUERY_STRING} [a-zA-Z0-9_]=/([a-z0-9_.]//?)+ [NC]
+    RewriteRule .* - [F]
+    
+    # Bloquear acceso a archivos del sistema
+    RewriteCond %{REQUEST_URI} !^/uploads/
+    RewriteCond %{REQUEST_URI} (\.bak|\.config|\.sql|\.fla|\.psd|\.ini|\.log|\.sh|\.inc|\.swp|\.dist)$ [NC]
+    RewriteRule .* - [F]
+</IfModule>
+
+# Límites de carga de archivos (ajustar según necesidad)
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
+php_value max_execution_time 300
+php_value max_input_time 300
